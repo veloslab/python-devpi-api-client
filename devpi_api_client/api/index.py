@@ -1,6 +1,7 @@
 from typing import Any, List, Optional, Dict
 from devpi_api_client.api.base import DevApiBase, logger
-from devpi_api_client.models.index import DeleteResponse, IndexConfig, IndexList
+from devpi_api_client.models.index import IndexConfig, IndexList
+from devpi_api_client.models.base import DeleteResponse
 
 
 class Index(DevApiBase):

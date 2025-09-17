@@ -1,7 +1,5 @@
-from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field, RootModel, model_validator
-from typing import Any, List, Optional
-from pydantic import BaseModel, Field, model_validator, ValidationInfo
+from pydantic import RootModel, BaseModel, Field, model_validator, ValidationInfo
+from typing import Any, List, Optional, Dict
 
 
 class IndexConfig(BaseModel):
@@ -65,10 +63,3 @@ class IndexList(RootModel[Dict[str, IndexConfig]]):
 
         # Return only the modified dictionary to the RootModel for validation
         return indexes_data
-
-
-class DeleteResponse(BaseModel):
-    """
-    Represents the confirmation message received after deleting an index.
-    """
-    message: str
