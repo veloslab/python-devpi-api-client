@@ -7,6 +7,7 @@ from devpi_api_client.models.token import (
     TokenInfo,
     TokenList
 )
+from devpi_api_client.models.base import DeleteResponse
 
 
 class Token(DevApiBase):
@@ -129,7 +130,7 @@ class Token(DevApiBase):
         logger.info(f"Requesting deletion of token '{token_id}' for user '{username}'")
         response_data = self._request('DELETE', path)
 
-        return response_data
+        return DeleteResponse.model_validate(response_data)
 
     def inspect(self, token: str) -> TokenInfo:
         """
