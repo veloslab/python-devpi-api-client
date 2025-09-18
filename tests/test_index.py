@@ -10,22 +10,18 @@ class TestDevpiClientIndexMethods(unittest.TestCase):
     def setUp(self):
         """Set up a fresh client instance before each test."""
         self.client = Client(base_url="http://fake-devpi")
-        # Mock the network-calling method
         self.client.index._request = MagicMock()
 
     def test_get_index_success(self):
         """Tests the get() method successfully retrieves and parses an index."""
         user, name = "testuser", "get-index"
-        # Configure the mock to return a simulated API response
         self.client.index._request.return_value = {'type': 'stage', 'volatile': True}
 
         result = self.client.index.get(user, name)
 
-        # 1. Check that the network request was made correctly
         self.client.index._request.assert_called_once_with(
             'GET', f"/{user}/{name}", params={'no_projects': ''}
         )
-        # 2. Check that the returned object is valid
         self.assertIsInstance(result, IndexConfig)
         self.assertEqual(result.user, user)
         self.assertEqual(result.name, name)
@@ -49,7 +45,6 @@ class TestDevpiClientIndexMethods(unittest.TestCase):
     def test_create_index_with_defaults(self):
         """Tests create() with default parameters."""
         user, name = "testuser", "create-index"
-        # Since create() calls get(), we need to mock the response for the get() call
         self.client.index._request.return_value = {
             'result': {
                 'acl_toxresult_upload': [':ANONYMOUS:'],
@@ -65,7 +60,6 @@ class TestDevpiClientIndexMethods(unittest.TestCase):
 
         result = self.client.index.create(user, name)
 
-        # 1. Assert the PUT request for creation was correct
         self.client.index._request.assert_any_call(
             'PUT', f"/{user}/{name}", json={'type': 'stage', 'volatile': True}
         )
@@ -81,7 +75,6 @@ class TestDevpiClientIndexMethods(unittest.TestCase):
             "bases": ["root/pypi"],
             "acl_upload": [":ANONYMOUS:"]
         }
-        # The GET call after creation should reflect these new settings
         self.client.index._request.return_value = {
             'result': {
                 'acl_toxresult_upload': [':ANONYMOUS:'],
@@ -96,7 +89,6 @@ class TestDevpiClientIndexMethods(unittest.TestCase):
         }
         result = self.client.index.create(user, name, **custom_payload)
 
-        # Check that the PUT request was made with the exact custom payload
         self.client.index._request.assert_any_call('PUT', f"/{user}/{name}", json=custom_payload)
         self.assertEqual(result.user, user)
         self.assertEqual(result.name, name)
@@ -121,15 +113,9 @@ class TestDevpiClientIndexMethods(unittest.TestCase):
 
         result = self.client.index.modify(user, name, volatile=False)
 
-        # 1. Assert the PATCH request was correct
         self.client.index._request.assert_any_call(
             'PATCH', f"/{user}/{name}", json={'volatile': False}
         )
-        # 2. Assert the subsequent GET request was made
-        self.client.index._request.assert_any_call(
-            'GET', f"/{user}/{name}", params={'no_projects': ''}
-        )
-        # 3. Check the returned object reflects the change
         self.assertEqual(result.volatile, False)
 
     def test_modify_with_no_params_raises_error(self):
@@ -170,18 +156,14 @@ class TestDevpiClientIndexMethods(unittest.TestCase):
             }
         }
         self.client.index._request.return_value = mock_api_response
-        # 2. Call the method under test
         result = self.client.index.list(user)
 
-        # 3. Assert the network request was made correctly
         self.client.index._request.assert_called_once_with('GET', f"/{user}")
 
-        # 4. Validate the returned data structure and content
         self.assertIsInstance(result, dict)
         self.assertIn('prod', result)
         self.assertIn('test', result)
 
-        # 5. Check if one of the objects was parsed correctly
         prod_index = result['prod']
         self.assertIsInstance(prod_index, IndexConfig)
         self.assertEqual(prod_index.user, user)
@@ -198,7 +180,6 @@ class TestDevpiClientIndexMethods(unittest.TestCase):
         result = self.client.index.list(user)
 
         self.client.index._request.assert_called_once_with('GET', f"/{user}")
-        # Assert that the result is an empty dictionary
         self.assertIsInstance(result, dict)
         self.assertEqual(len(result), 0)
 

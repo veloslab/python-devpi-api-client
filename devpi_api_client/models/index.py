@@ -1,5 +1,8 @@
-from pydantic import RootModel, BaseModel, Field, model_validator, ValidationInfo
-from typing import Any, List, Optional, Dict
+"""
+Index models for devpi API client.
+"""
+from typing import Any, Dict, List, Optional
+from pydantic import BaseModel, Field, RootModel, model_validator, ValidationInfo
 
 
 class IndexConfig(BaseModel):
@@ -32,8 +35,8 @@ class IndexConfig(BaseModel):
         from the validation context, if provided.
         """
         if info.context:
-            self.user = info.context.get('user')
-            self.name = info.context.get('name')
+            self.user = info.context.get('user', self.user)
+            self.name = info.context.get('name', self.name)
         return self
 
 
@@ -46,10 +49,10 @@ class IndexList(RootModel[Dict[str, IndexConfig]]):
         (user, index_name) into each index's data before validation.
         """
         if not isinstance(data, dict) or 'result' not in data:
-            return data  # Return as is if format is not as expected
-
-        # Extract the dictionary of indexes from the 'result' key
-        indexes_data = data['result']['indexes']
+            indexes_data = data  # Return as is if format is not as expected
+        else:
+            # Extract the dictionary of indexes from the 'result' key
+            indexes_data = data['result']['indexes']
 
         # Get user from the validation context
         user = info.context.get('user') if info.context else None
@@ -58,8 +61,8 @@ class IndexList(RootModel[Dict[str, IndexConfig]]):
             # Mutate the data in-place to add the required context
             for index_name, index_config in indexes_data.items():
                 if isinstance(index_config, dict):
-                    index_config['user'] = user
-                    index_config['name'] = index_name
+                    indexes_data[index_name]['user'] = user
+                    indexes_data[index_name]['name']= index_name
 
         # Return only the modified dictionary to the RootModel for validation
         return indexes_data
