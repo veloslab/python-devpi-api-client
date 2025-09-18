@@ -6,7 +6,7 @@ import pytest
 from unittest.mock import Mock
 from requests.exceptions import ConnectionError, Timeout, HTTPError, RequestException
 
-from devpi_api_client.api.base import DevApiBase
+from devpi_api_client.api.base import DevApiBase, validate_non_empty_string
 from devpi_api_client.exceptions import (
     ValidationError,
     AuthenticationError,
@@ -43,25 +43,25 @@ class TestDevApiBase:
     def test_validate_non_empty_string_valid(self, api_base):
         """Test validation with valid non-empty string."""
         # Should not raise any exception
-        api_base._validate_non_empty_string("test_param", "valid_value")
+        validate_non_empty_string("test_param", "valid_value")
 
     def test_validate_non_empty_string_empty(self, api_base):
         """Test validation with empty string."""
         with pytest.raises(ValidationError, match="Parameter 'test_param' must be a non-empty string"):
-            api_base._validate_non_empty_string("test_param", "")
+            validate_non_empty_string("test_param", "")
 
     def test_validate_non_empty_string_whitespace(self, api_base):
         """Test validation with whitespace-only string."""
         with pytest.raises(ValidationError, match="Parameter 'test_param' must be a non-empty string"):
-            api_base._validate_non_empty_string("test_param", "   ")
+            validate_non_empty_string("test_param", "   ")
 
     def test_validate_non_empty_string_not_string(self, api_base):
         """Test validation with non-string value."""
         with pytest.raises(ValidationError, match="Parameter 'test_param' must be a non-empty string"):
-            api_base._validate_non_empty_string("test_param", 123)
+            validate_non_empty_string("test_param", 123)
 
         with pytest.raises(ValidationError, match="Parameter 'test_param' must be a non-empty string"):
-            api_base._validate_non_empty_string("test_param", None)
+            validate_non_empty_string("test_param", None)
 
     def test_request_success_json(self, api_base, mock_client):
         """Test successful request with JSON response."""
