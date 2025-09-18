@@ -1,7 +1,7 @@
 from typing import Any, List, Optional, Dict
 import logging
 
-from devpi_api_client.api.base import DevApiBase
+from devpi_api_client.api.base import DevApiBase, validate_non_empty_string
 from devpi_api_client.exceptions import ValidationError, NotFoundError
 from devpi_api_client.models.index import IndexConfig, IndexList
 from devpi_api_client.models.base import DeleteResponse
@@ -46,8 +46,8 @@ class Index(DevApiBase):
         :raises ConflictError: If index already exists
         :raises DevpiApiError: For other API errors
         """
-        self._validate_non_empty_string("user", user)
-        self._validate_non_empty_string("name", name)
+        validate_non_empty_string("user", user)
+        validate_non_empty_string("name", name)
 
         # Validate type parameter
         valid_types = ['stage', 'mirror']
@@ -86,8 +86,8 @@ class Index(DevApiBase):
         :raises NotFoundError: If index does not exist
         :raises DevpiApiError: For other API errors
         """
-        self._validate_non_empty_string("user", user)
-        self._validate_non_empty_string("name", name)
+        validate_non_empty_string("user", user)
+        validate_non_empty_string("name", name)
 
         path = f"/{user}/{name}"
         params = {'no_projects': ''} if no_projects else None
@@ -110,8 +110,8 @@ class Index(DevApiBase):
         :raises PermissionError: If insufficient permissions to delete index
         :raises DevpiApiError: For other API errors
         """
-        self._validate_non_empty_string("user", user)
-        self._validate_non_empty_string("name", name)
+        validate_non_empty_string("user", user)
+        validate_non_empty_string("name", name)
 
         path = f"/{user}/{name}"
         logger.info(f"Deleting index: {user}/{name}")
@@ -151,8 +151,8 @@ class Index(DevApiBase):
         :raises NotFoundError: If index does not exist
         :raises DevpiApiError: For other API errors
         """
-        self._validate_non_empty_string("user", user)
-        self._validate_non_empty_string("name", name)
+        validate_non_empty_string("user", user)
+        validate_non_empty_string("name", name)
 
         # Build the payload with only the provided arguments
         payload = {}
@@ -194,7 +194,7 @@ class Index(DevApiBase):
         :raises ValidationError: If user is empty
         :raises DevpiApiError: For API errors
         """
-        self._validate_non_empty_string("user", user)
+        validate_non_empty_string("user", user)
 
         path = f"/{user}"
         logger.debug(f"Listing indexes for user: {user}")
@@ -214,8 +214,8 @@ class Index(DevApiBase):
         :return: True if index exists, False otherwise
         :raises ValidationError: If user or name is empty
         """
-        self._validate_non_empty_string("user", user)
-        self._validate_non_empty_string("name", name)
+        validate_non_empty_string("user", user)
+        validate_non_empty_string("name", name)
 
         try:
             self.get(user, name, no_projects=True)
