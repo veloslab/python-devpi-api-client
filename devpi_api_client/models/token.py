@@ -1,5 +1,10 @@
-from typing import Dict, List, Optional, Any
-from pydantic import BaseModel, field_validator, model_validator, ValidationInfo
+"""
+Token models for devpi API client.
+"""
+
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, model_validator, ValidationInfo
 
 
 class TokenInfo(BaseModel):
@@ -14,12 +19,11 @@ class TokenInfo(BaseModel):
     projects: Optional[List[str]] = None
     restrictions: List[str]
 
-
     @model_validator(mode='before')
     @classmethod
     def parse_and_flatten_restrictions(cls, data: Any, info: ValidationInfo) -> Any:
         """
-        Parses the 'restrictions' list from the raw data and flattens
+        Parse the 'restrictions' list from the raw data and flatten
         its key-value pairs into the model's main fields.
         """
         if not isinstance(data, dict):
@@ -33,7 +37,6 @@ class TokenInfo(BaseModel):
                 elif key in ['allowed', 'indexes', 'projects']:
                     data[key] = value.split(',')
         return data
-
 
 class TokenListResult(BaseModel):
     tokens: Dict[str, TokenInfo]

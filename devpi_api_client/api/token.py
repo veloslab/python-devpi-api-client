@@ -1,25 +1,26 @@
 import datetime
-import pymacaroons
 from typing import Any, Dict, List, Optional
+import logging
 
-from devpi_api_client.api.base import DevApiBase, logger
-from devpi_api_client.models.token import (
-    TokenInfo,
-    TokenList
-)
+import pymacaroons
+
+from devpi_api_client.api.base import DevApiBase, validate_non_empty_string
+from devpi_api_client.exceptions import ValidationError, NotFoundError
+from devpi_api_client.models.token import TokenInfo, TokenList
 from devpi_api_client.models.base import DeleteResponse
+
+logger = logging.getLogger(__name__)
 
 
 class Token(DevApiBase):
     """
-    Manages API tokens for users on a devpi server.
+    Token API client for devpi server token management.
 
-    This class provides methods to create, list, delete, derive, and inspect user
-    API tokens. It interacts with the ``devpi-tokens`` plugin on the server. The
-    `derive` and `inspect` methods operate client-side and require the
-    `pymacaroons` library.
+    This class provides methods to create, list, delete, and inspect user
+    API tokens. It interacts with the ``devpi-tokens`` plugin on the server.
+    The `inspect` method operates client-side using the `pymacaroons` library.
 
-    Access these methods via ``client.token``.
+    Accessed via ``client.token``.
     """
 
     public_permissions = {
@@ -31,32 +32,30 @@ class Token(DevApiBase):
     }
     known_permissions = public_permissions.union(hidden_permissions)
 
-    @staticmethod
-    def _validate_non_empty_param(name: str, value: Any) -> None:
-        """Raise ValueError if a parameter is not a non-blank string."""
-        if not isinstance(value, str) or not value.strip():
-            raise ValueError(f"Parameter '{name}' must be a non-empty string.")
 
     def _validate_permissions(self, permissions: Optional[List[str]]) -> Optional[List[str]]:
         """
-        Validates a list of permissions against the known set.
+        Validate a list of permissions against the known set.
 
-        :param permissions: A list of permission strings to validate.
-        :return: A sorted list of unique, valid permission strings.
-        :raises ValueError: If any permission is invalid or unknown.
+        :param permissions: A list of permission strings to validate
+        :return: A sorted list of unique, valid permission strings
+        :raises ValidationError: If any permission is invalid or unknown
         """
         if permissions is None:
             return None
 
+        if not isinstance(permissions, list):
+            raise ValidationError("Permissions must be provided as a list")
+
         cleaned_permissions = []
         for perm in permissions:
             if not isinstance(perm, str) or not perm.strip():
-                raise ValueError(f"Invalid permission '{perm}': must be a non-empty string.")
+                raise ValidationError(f"Invalid permission '{perm}': must be a non-empty string")
             cleaned_permissions.append(perm.strip())
 
         unknown = [p for p in cleaned_permissions if p not in self.known_permissions]
         if unknown:
-            raise ValueError(f"Unknown permissions provided: {', '.join(unknown)}")
+            raise ValidationError(f"Unknown permissions: {', '.join(unknown)}. Valid permissions: {', '.join(sorted(self.public_permissions))}")
 
         return sorted(list(set(cleaned_permissions)))
 
@@ -69,81 +68,136 @@ class Token(DevApiBase):
             projects: Optional[List[str]] = None,
     ) -> str:
         """
-        Creates a new authentication token for a specified user.
+        Create a new authentication token for a specified user.
 
-        :param username: The user for whom the token will be created.
-        :param allowed: A list of permissions to grant the token (e.g., 'pkg_read', 'upload').
-        :param expires_in_seconds: The duration, in seconds, for which the token will be valid.
-        :param indexes: A list of indexes to which the token should be restricted.
-        :param projects: A list of projects to which the token should be restricted.
-        :return: A ``TokenCreateResponse`` model containing the new token secret, or ``None`` if the request fails.
-        :raises ValueError: If ``username`` is invalid or if any provided permissions are unknown.
+        :param username: Username for whom the token will be created (must be non-empty)
+        :param allowed: List of permissions to grant the token (e.g., 'pkg_read', 'upload')
+        :param expires_in_seconds: Duration in seconds for which the token will be valid
+        :param indexes: List of indexes to which the token should be restricted
+        :param projects: List of projects to which the token should be restricted
+        :return: The new token secret string
+        :raises ValidationError: If username is invalid or permissions are unknown
+        :raises DevpiApiError: For other API errors
         """
-        self._validate_non_empty_param("username", username)
+        validate_non_empty_string("username", username)
         validated_allowed = self._validate_permissions(allowed)
 
-        path = f"/{username}/+token-create"
+        # Validate expires_in_seconds if provided
+        if expires_in_seconds is not None:
+            if not isinstance(expires_in_seconds, int) or expires_in_seconds <= 0:
+                raise ValidationError("expires_in_seconds must be a positive integer")
 
+        path = f"/{username}/+token-create"
         payload: Dict[str, Any] = {}
+
         if validated_allowed:
             payload["allowed"] = validated_allowed
         if expires_in_seconds is not None:
             expires_at = datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(
-                seconds=expires_in_seconds)
+                seconds=expires_in_seconds
+            )
             payload["expires"] = int(expires_at.timestamp())
         if indexes:
             payload["indexes"] = indexes
         if projects:
             payload["projects"] = projects
 
-        logger.info(f"Requesting creation of a new token for user '{username}'")
+        logger.info(f"Creating new token for user: {username}")
         response_data = self._request('POST', path, json=payload)
+
+        if 'result' not in response_data or 'token' not in response_data['result']:
+            raise ValueError("Unexpected response format when creating token")
+
         return response_data['result']['token']
 
-    def list(self, user: str) -> dict[str, TokenInfo]:
+    def list(self, user: str) -> Dict[str, TokenInfo]:
         """
-        Lists and parses all authentication tokens for a specified user.
+        List and parse all authentication tokens for a specified user.
 
-        :param user: The user whose tokens to list.
-        :return: A ``TokenListResponse`` model containing fully parsed token data, or ``None`` if the request fails or the user has no tokens.
+        :param user: Username whose tokens to list (must be non-empty)
+        :return: Dictionary mapping token IDs to TokenInfo objects
+        :raises ValidationError: If user is empty
+        :raises DevpiApiError: For API errors
         """
-        self._validate_non_empty_param("user", user)
+        validate_non_empty_string("user", user)
         path = f"/{user}/+tokens"
+
+        logger.debug(f"Listing tokens for user: {user}")
         response_data = self._request('GET', path)
 
         if response_data:
-            return TokenList.model_validate(response_data,  context={'user': user}).result.tokens
+            token_list = TokenList.model_validate(response_data, context={'user': user})
+            return token_list.result.tokens
 
-        return None
+        # If we get here without an exception, return empty dict
+        return {}
 
-    def delete(self, username: str, token_id: str):
+    def delete(self, username: str, token_id: str) -> DeleteResponse:
         """
-        Deletes a specific authentication token.
+        Delete a specific authentication token.
 
-        :param username: The user who owns the token.
-        :param token_id: The unique ID of the token to delete (not the secret).
+        :param username: Username who owns the token (must be non-empty)
+        :param token_id: Unique ID of the token to delete (not the secret)
+        :return: DeleteResponse confirming the deletion
+        :raises ValidationError: If username or token_id is empty
+        :raises NotFoundError: If token does not exist
+        :raises DevpiApiError: For other API errors
         """
-        self._validate_non_empty_param("username", username)
-        self._validate_non_empty_param("token_id", token_id)
+        validate_non_empty_string("username", username)
+        validate_non_empty_string("token_id", token_id)
         path = f"/{username}/+tokens/{token_id}"
 
-        logger.info(f"Requesting deletion of token '{token_id}' for user '{username}'")
+        logger.info(f"Deleting token '{token_id}' for user '{username}'")
         response_data = self._request('DELETE', path)
 
         return DeleteResponse.model_validate(response_data)
 
-    def inspect(self, token: str) -> TokenInfo:
+    @staticmethod
+    def inspect(token: str) -> TokenInfo:
         """
-        Inspects a token to reveal its contents without server contact (client-side operation).
+        Inspect a token to reveal its contents without server contact (client-side operation).
 
-        :param token: The devpi token string to inspect.
-        :return: An ``InspectTokenInfo`` model containing the token's decoded data.
+        :param token: The devpi token string to inspect (must be non-empty)
+        :return: TokenInfo containing the token's decoded data
+        :raises ValidationError: If token is empty or invalid format
+        :raises ValueError: If token cannot be parsed
         """
-        if token.startswith("devpi-"):
-            token = token[6:]
+        validate_non_empty_string("token", token)
 
-        macaroon = pymacaroons.Macaroon.deserialize(token)
-        user, token_id = macaroon.identifier.decode("ascii").rsplit('-', 1)
+        # Remove devpi- prefix if present
+        token_data = token[6:] if token.startswith("devpi-") else token
 
-        restrictions = [caveat.to_dict()['cid'] for caveat in macaroon.caveats]
-        return TokenInfo(user=user, id=token_id, restrictions=restrictions)
+        try:
+            macaroon = pymacaroons.Macaroon.deserialize(token_data)
+            identifier = macaroon.identifier.decode("ascii")
+
+            # Split user and token_id
+            parts = identifier.rsplit('-', 1)
+            if len(parts) != 2:
+                raise ValueError(f"Invalid token identifier format: {identifier}")
+
+            user, token_id = parts
+            restrictions = [caveat.to_dict()['cid'] for caveat in macaroon.caveats]
+
+            return TokenInfo(user=user, id=token_id, restrictions=restrictions)
+
+        except Exception as e:
+            raise ValueError(f"Failed to parse token: {e}")
+
+    def exists(self, username: str, token_id: str) -> bool:
+        """
+        Check if a specific token exists for a user.
+
+        :param username: Username who owns the token (must be non-empty)
+        :param token_id: Unique ID of the token to check
+        :return: True if token exists, False otherwise
+        :raises ValidationError: If username or token_id is empty
+        """
+        validate_non_empty_string("username", username)
+        validate_non_empty_string("token_id", token_id)
+
+        try:
+            tokens = self.list(username)
+            return token_id in tokens
+        except NotFoundError:
+            return False
