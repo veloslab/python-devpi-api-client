@@ -1,6 +1,9 @@
-from pydantic import BaseModel, Field, HttpUrl, RootModel
-from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field, model_validator, ValidationInfo
+"""
+Project/Package models for devpi API client.
+"""
+
+from typing import Any, Dict, List, Optional
+from pydantic import BaseModel, Field, HttpUrl, RootModel, model_validator, ValidationInfo
 
 
 class LogItem(BaseModel):
