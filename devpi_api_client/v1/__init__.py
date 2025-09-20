@@ -83,13 +83,13 @@ class Client:
         self.token = Token(self)
 
         # Handle authentication
-        has_username = isinstance(user, str) and user.strip() != ""
-        has_password = isinstance(password, str) and password.strip() != ""
+        username_value = user.strip() if isinstance(user, str) and user.strip() else None
+        password_value = password.strip() if isinstance(password, str) and password.strip() else None
 
         if token:
             self.auth.token(token)
-        elif has_username and has_password:
-            self.auth.user(user.strip(), password.strip())
+        elif username_value is not None and password_value is not None:
+            self.auth.user(username_value, password_value)
         elif user is not None or password is not None:
             raise ValidationError("Both username and password must be provided for password authentication")
 
