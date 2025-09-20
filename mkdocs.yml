@@ -1,0 +1,22 @@
+site_name: Devpi API Client
+site_description: "Python client for automating devpi user, index, token, and package workflows."
+site_url: ""
+repo_url: https://github.com/ramos_admin/python-devpi-api-client
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - content.code.copy
+  palette:
+    primary: indigo
+    accent: deep purple
+nav:
+  - Overview: index.md
+  - Release Guide: RELEASE_GUIDE.md
+markdown_extensions:
+  - admonition
+  - codehilite
+  - footnotes
+  - toc:
+      permalink: true
