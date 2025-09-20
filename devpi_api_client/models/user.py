@@ -1,6 +1,7 @@
 # In devpi_api_client/models/user.py
 
 from collections.abc import Iterator
+from datetime import datetime
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field, RootModel, model_validator
@@ -14,6 +15,7 @@ class UserInfo(BaseModel):
     username: str
     email: str
     indexes: dict[str, IndexConfig] = Field(default_factory=dict)
+    created: Optional[datetime] = None
 
     @model_validator(mode="before")
     @classmethod
@@ -111,12 +113,40 @@ class UserList(RootModel[dict[str, UserInfo]]):
 class UserCreateResponse(BaseModel):
     """API response returned after creating a user."""
 
-    message: str
-    username: str
+    type: Optional[str] = None
+    result: Optional[UserInfo] = None
+    message: Optional[str] = None
+    username: Optional[str] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize_payload(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+
+        normalized = dict(data)
+        result = normalized.get("result")
+        if isinstance(result, dict):
+            normalized.setdefault("username", result.get("username"))
+
+        return normalized
+
+    @model_validator(mode="after")
+    def _ensure_username_present(self) -> "UserCreateResponse":
+        if self.result and self.username is None:
+            object.__setattr__(self, "username", self.result.username)
+
+        if self.username is None:
+            raise ValueError("username missing from user creation response")
+
+        return self
 
     def is_success(self) -> bool:
-        msg = self.message.lower()
-        return "success" in msg or "created" in msg
+        if self.message:
+            msg = self.message.lower()
+            return "success" in msg or "created" in msg
+
+        return self.result is not None
 
 
 class UserDeleteResponse(BaseModel):
