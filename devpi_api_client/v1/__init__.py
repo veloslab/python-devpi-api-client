@@ -4,10 +4,10 @@ from typing import Any, Optional, Union, cast
 
 import requests
 
-from devpi_api_client.version import __version__
 from devpi_api_client.api import Auth, Index, Project, Token, User
 from devpi_api_client.api.base import DevApiBase
 from devpi_api_client.exceptions import ValidationError
+from devpi_api_client.version import __version__
 
 logger = logging.getLogger(__name__)
 

@@ -6,7 +6,6 @@ devpi servers, including user management, index operations, project management,
 and authentication.
 """
 
-from devpi_api_client.version import __version__
 from devpi_api_client.exceptions import (
     AuthenticationError,
     ConflictError,
@@ -19,6 +18,7 @@ from devpi_api_client.exceptions import (
     ValidationError,
 )
 from devpi_api_client.v1 import Client
+from devpi_api_client.version import __version__
 
 # Main client class
 __all__ = [
