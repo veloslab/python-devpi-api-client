@@ -1,21 +1,22 @@
 """
 Index models for devpi API client.
 """
-from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field, RootModel, model_validator, ValidationInfo
+from typing import Any, Optional, cast
+
+from pydantic import BaseModel, Field, RootModel, ValidationInfo, model_validator
 
 
 class IndexConfig(BaseModel):
     user: Optional[str] = None
     name: Optional[str] = None
     type: str
-    bases: Optional[List[str]] = Field(default_factory=list)
+    bases: Optional[list[str]] = Field(default_factory=list)
     volatile: bool = Field(default=False)
-    acl_upload: Optional[List[str]] = Field(default_factory=list)
-    acl_toxresult_upload: Optional[List[str]] = Field(default_factory=list)
+    acl_upload: Optional[list[str]] = Field(default_factory=list)
+    acl_toxresult_upload: Optional[list[str]] = Field(default_factory=list)
     mirror_whitelist_inheritance: Optional[str] = None
-    mirror_whitelist: Optional[List[Any]] = Field(default_factory=list)
-    projects: Optional[List[str]] = None
+    mirror_whitelist: Optional[list[Any]] = Field(default_factory=list)
+    projects: Optional[list[str]] = None
 
     @model_validator(mode='before')
     @classmethod
@@ -40,7 +41,7 @@ class IndexConfig(BaseModel):
         return self
 
 
-class IndexList(RootModel[Dict[str, IndexConfig]]):
+class IndexList(RootModel[dict[str, IndexConfig]]):
     @model_validator(mode='before')
     @classmethod
     def _unwrap_and_inject_context(cls, data: Any, info: ValidationInfo) -> Any:
@@ -58,11 +59,10 @@ class IndexList(RootModel[Dict[str, IndexConfig]]):
         user = info.context.get('user') if info.context else None
 
         if user and isinstance(indexes_data, dict):
-            # Mutate the data in-place to add the required context
-            for index_name, index_config in indexes_data.items():
-                if isinstance(index_config, dict):
-                    indexes_data[index_name]['user'] = user
-                    indexes_data[index_name]['name']= index_name
+            indexes_dict = cast(dict[str, dict[str, Any]], indexes_data)
+            for index_name, index_config in indexes_dict.items():
+                index_config.setdefault('user', user)
+                index_config.setdefault('name', index_name)
+            return indexes_dict
 
-        # Return only the modified dictionary to the RootModel for validation
         return indexes_data

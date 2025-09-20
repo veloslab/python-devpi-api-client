@@ -2,9 +2,9 @@
 Token models for devpi API client.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
-from pydantic import BaseModel, model_validator, ValidationInfo
+from pydantic import BaseModel, ValidationInfo, model_validator
 
 
 class TokenInfo(BaseModel):
@@ -13,11 +13,11 @@ class TokenInfo(BaseModel):
     """
     id: str
     user: str
-    allowed: Optional[List[str]] = None
+    allowed: Optional[list[str]] = None
     expires: Optional[int] = None
-    indexes: Optional[List[str]] = None
-    projects: Optional[List[str]] = None
-    restrictions: List[str]
+    indexes: Optional[list[str]] = None
+    projects: Optional[list[str]] = None
+    restrictions: list[str]
 
     @model_validator(mode='before')
     @classmethod
@@ -39,7 +39,7 @@ class TokenInfo(BaseModel):
         return data
 
 class TokenListResult(BaseModel):
-    tokens: Dict[str, TokenInfo]
+    tokens: dict[str, TokenInfo]
 
 #class TokenList(RootModel[Dict[str, IndexConfig]]):
 class TokenList(BaseModel):

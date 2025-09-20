@@ -1,10 +1,10 @@
-from typing import Any, List, Optional, Dict
 import logging
+from typing import Any, Optional
 
 from devpi_api_client.api.base import DevApiBase, validate_non_empty_string
-from devpi_api_client.exceptions import ValidationError, NotFoundError
-from devpi_api_client.models.index import IndexConfig, IndexList
+from devpi_api_client.exceptions import NotFoundError, ValidationError
 from devpi_api_client.models.base import DeleteResponse
+from devpi_api_client.models.index import IndexConfig, IndexList
 
 logger = logging.getLogger(__name__)
 
@@ -22,12 +22,12 @@ class Index(DevApiBase):
             user: str,
             name: str,
             type: str = "stage",
-            bases: Optional[List[str]] = None,
+            bases: Optional[list[str]] = None,
             volatile: bool = True,
-            acl_upload: Optional[List[str]] = None,
-            acl_toxresult_upload: Optional[List[str]] = None,
+            acl_upload: Optional[list[str]] = None,
+            acl_toxresult_upload: Optional[list[str]] = None,
             mirror_whitelist_inheritance: Optional[str] = None,
-            mirror_whitelist: Optional[List[str]] = None,
+            mirror_whitelist: Optional[list[str]] = None,
     ) -> IndexConfig:
         """
         Create a new index with specified configuration parameters.
@@ -124,12 +124,12 @@ class Index(DevApiBase):
             user: str,
             name: str,
             type: Optional[str] = None,
-            bases: Optional[List[str]] = None,
+            bases: Optional[list[str]] = None,
             volatile: Optional[bool] = None,
-            acl_upload: Optional[List[str]] = None,
-            acl_toxresult_upload: Optional[List[str]] = None,
+            acl_upload: Optional[list[str]] = None,
+            acl_toxresult_upload: Optional[list[str]] = None,
             mirror_whitelist_inheritance: Optional[str] = None,
-            mirror_whitelist: Optional[List[str]] = None,
+            mirror_whitelist: Optional[list[str]] = None,
     ) -> IndexConfig:
         """
         Modify an existing index's attributes using explicit parameters.
@@ -155,7 +155,7 @@ class Index(DevApiBase):
         validate_non_empty_string("name", name)
 
         # Build the payload with only the provided arguments
-        payload = {}
+        payload: dict[str, Any] = {}
         if type is not None:
             # Validate type parameter
             valid_types = ['stage', 'mirror']
@@ -185,7 +185,7 @@ class Index(DevApiBase):
         validation_context = {"user": user, "name": name}
         return IndexConfig.model_validate(response_data, context=validation_context)
 
-    def list(self, user: str) -> Dict[str, IndexConfig]:
+    def list(self, user: str) -> dict[str, IndexConfig]:
         """
         List all indexes for a given user.
 

@@ -1,14 +1,15 @@
-import os
-from typing import List, Optional, Dict
-from pathlib import Path
 import logging
+import os
+from pathlib import Path
+from typing import Optional
 
 import pkginfo
+from pkginfo import Distribution
 
 from devpi_api_client.api.base import DevApiBase, validate_non_empty_string
-from devpi_api_client.exceptions import ValidationError, NotFoundError
-from devpi_api_client.models.project import ProjectVersionList, ProjectVersion
+from devpi_api_client.exceptions import NotFoundError, ValidationError
 from devpi_api_client.models.base import DeleteResponse
+from devpi_api_client.models.project import ProjectVersion, ProjectVersionList
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,7 @@ class Project(DevApiBase):
     Accessed via ``client.project`` or ``client.package``.
     """
 
-    def list(self, user: str, index: str) -> List[str]:
+    def list(self, user: str, index: str) -> list[str]:
         """
         List all unique package names available in an index.
 
@@ -42,7 +43,7 @@ class Project(DevApiBase):
         index_config = self._client.index.get(user, index, no_projects=False)
         return index_config.projects or []
 
-    def get(self, user: str, index: str, package_name: str) -> Dict[str, ProjectVersion]:
+    def get(self, user: str, index: str, package_name: str) -> dict[str, ProjectVersion]:
         """
         Retrieve version and release file information for a specific package.
 
@@ -100,20 +101,23 @@ class Project(DevApiBase):
 
         # Extract metadata from the package file using pkginfo
         try:
+            pkg_info: Distribution
             if file.name.endswith(".whl"):
                 pkg_info = pkginfo.Wheel(filepath)
-            elif file.name.endswith(".tar.gz") or file.name.endswith(".tgz"):
+            elif file.name.endswith((".tar.gz", ".tgz")):
                 pkg_info = pkginfo.SDist(filepath)
             elif file.name.endswith(".egg"):
                 pkg_info = pkginfo.BDist(filepath)
             else:
-                raise ValueError(f"Unsupported package file type: {file.name}. Supported types: .whl, .tar.gz, .tgz, .egg")
+                raise ValueError(
+                    f"Unsupported package file type: {file.name}. Supported types: .whl, .tar.gz, .tgz, .egg"
+                )
         except Exception as e:
-            raise ValueError(f"Could not parse package metadata from {file.name}: {e}")
+            raise ValueError(f"Could not parse package metadata from {file.name}: {e}") from e
 
         # Validate that we got the required metadata
         if not pkg_info.name or not pkg_info.version:
-            raise ValueError(f"Package metadata is incomplete - missing name or version")
+            raise ValueError("Package metadata is incomplete - missing name or version")
 
         # Prepare the metadata payload
         metadata_payload = {
@@ -128,9 +132,8 @@ class Project(DevApiBase):
             metadata_payload["summary"] = pkg_info.summary
 
         # Handle headers for multipart upload
-        upload_headers = self._client.session.headers.copy()
-        if 'Content-Type' in upload_headers:
-            del upload_headers['Content-Type']
+        upload_headers = dict(self._client.session.headers)
+        upload_headers.pop('Content-Type', None)
 
         logger.info(f"Uploading package {pkg_info.name} v{pkg_info.version} to {user}/{index}")
 
@@ -199,4 +202,3 @@ class Project(DevApiBase):
                 return len(package_versions) > 0
         except NotFoundError:
             return False
-

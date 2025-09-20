@@ -1,13 +1,13 @@
 import datetime
-from typing import Any, Dict, List, Optional
 import logging
+from typing import Any, Optional, cast
 
 import pymacaroons
 
 from devpi_api_client.api.base import DevApiBase, validate_non_empty_string
-from devpi_api_client.exceptions import ValidationError, NotFoundError
-from devpi_api_client.models.token import TokenInfo, TokenList
+from devpi_api_client.exceptions import NotFoundError, ValidationError
 from devpi_api_client.models.base import DeleteResponse
+from devpi_api_client.models.token import TokenInfo, TokenList
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ class Token(DevApiBase):
     known_permissions = public_permissions.union(hidden_permissions)
 
 
-    def _validate_permissions(self, permissions: Optional[List[str]]) -> Optional[List[str]]:
+    def _validate_permissions(self, permissions: Optional[list[str]]) -> Optional[list[str]]:
         """
         Validate a list of permissions against the known set.
 
@@ -55,17 +55,20 @@ class Token(DevApiBase):
 
         unknown = [p for p in cleaned_permissions if p not in self.known_permissions]
         if unknown:
-            raise ValidationError(f"Unknown permissions: {', '.join(unknown)}. Valid permissions: {', '.join(sorted(self.public_permissions))}")
+            valid = ', '.join(sorted(self.public_permissions))
+            raise ValidationError(
+                f"Unknown permissions: {', '.join(unknown)}. Valid permissions: {valid}"
+            )
 
         return sorted(list(set(cleaned_permissions)))
 
     def create(
             self,
             username: str,
-            allowed: Optional[List[str]] = None,
+            allowed: Optional[list[str]] = None,
             expires_in_seconds: Optional[int] = None,
-            indexes: Optional[List[str]] = None,
-            projects: Optional[List[str]] = None,
+            indexes: Optional[list[str]] = None,
+            projects: Optional[list[str]] = None,
     ) -> str:
         """
         Create a new authentication token for a specified user.
@@ -88,7 +91,7 @@ class Token(DevApiBase):
                 raise ValidationError("expires_in_seconds must be a positive integer")
 
         path = f"/{username}/+token-create"
-        payload: Dict[str, Any] = {}
+        payload: dict[str, Any] = {}
 
         if validated_allowed:
             payload["allowed"] = validated_allowed
@@ -108,9 +111,9 @@ class Token(DevApiBase):
         if 'result' not in response_data or 'token' not in response_data['result']:
             raise ValueError("Unexpected response format when creating token")
 
-        return response_data['result']['token']
+        return cast(str, response_data['result']['token'])
 
-    def list(self, user: str) -> Dict[str, TokenInfo]:
+    def list(self, user: str) -> dict[str, TokenInfo]:
         """
         List and parse all authentication tokens for a specified user.
 
@@ -182,7 +185,7 @@ class Token(DevApiBase):
             return TokenInfo(user=user, id=token_id, restrictions=restrictions)
 
         except Exception as e:
-            raise ValueError(f"Failed to parse token: {e}")
+            raise ValueError(f"Failed to parse token: {e}") from e
 
     def exists(self, username: str, token_id: str) -> bool:
         """
