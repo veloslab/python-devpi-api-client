@@ -1,8 +1,9 @@
 import unittest
 from unittest.mock import MagicMock
+
 from devpi_api_client import Client
-from devpi_api_client.models import IndexConfig
 from devpi_api_client.exceptions import NotFoundError, ValidationError
+from devpi_api_client.models import IndexConfig
 
 
 class TestDevpiClientIndexMethods(unittest.TestCase):

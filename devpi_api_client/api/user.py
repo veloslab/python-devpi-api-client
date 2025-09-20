@@ -4,7 +4,7 @@ import logging
 from typing import Any, Optional
 
 from devpi_api_client.api.base import DevApiBase, validate_non_empty_string
-from devpi_api_client.exceptions import NotFoundError, ValidationError
+from devpi_api_client.exceptions import NotFoundError, ResponseParsingError, ValidationError
 from devpi_api_client.models.user import (
     UserCreateResponse,
     UserDeleteResponse,
@@ -26,14 +26,14 @@ class User(DevApiBase):
     or None for failed operations.
     """
 
-    def create(self, username: str, password: str, email: Optional[str] = None) -> UserCreateResponse:
+    def create(self, username: str, password: str, email: Optional[str] = None) -> UserInfo:
         """
         Create a new user on the devpi server.
 
         :param username: Username for the new user (must be non-empty)
         :param password: Password for the new user (must be non-empty)
         :param email: Optional email address for the new user
-        :return: UserCreateResponse model confirming creation
+        :return: UserInfo model confirming creation
         :raises ValidationError: If username or password is empty
         :raises ConflictError: If user already exists
         :raises DevpiApiError: For other API errors
@@ -49,7 +49,14 @@ class User(DevApiBase):
         logger.info(f"Creating user: {username}")
         response_data = self._request('PUT', path, json=payload)
 
-        return UserCreateResponse.model_validate(response_data)
+        create_response = UserCreateResponse.model_validate(response_data)
+        if create_response.result is None:
+            raise ResponseParsingError(
+                "User creation response missing result payload",
+                response_data=response_data,
+            )
+
+        return create_response.result
 
     def get(self, username: str) -> UserInfo:
         """

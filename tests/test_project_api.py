@@ -1,13 +1,11 @@
 import unittest
-from unittest.mock import MagicMock, patch, mock_open
-import os
-from pathlib import Path
+from unittest.mock import MagicMock, mock_open, patch
 
 from devpi_api_client import Client
-from devpi_api_client.models.project import ProjectVersion
-from devpi_api_client.models.index import IndexConfig
-from devpi_api_client.models.base import DeleteResponse
 from devpi_api_client.exceptions import NotFoundError, ValidationError
+from devpi_api_client.models.base import DeleteResponse
+from devpi_api_client.models.index import IndexConfig
+from devpi_api_client.models.project import ProjectVersion
 
 
 class TestDevpiClientProjectMethods(unittest.TestCase):

@@ -1,11 +1,11 @@
+import datetime
 import unittest
 from unittest.mock import MagicMock, patch
-import datetime
 
 from devpi_api_client import Client
-from devpi_api_client.models.token import TokenInfo
+from devpi_api_client.exceptions import ValidationError
 from devpi_api_client.models.base import DeleteResponse
-from devpi_api_client.exceptions import ValidationError, NotFoundError
+from devpi_api_client.models.token import TokenInfo
 
 
 class TestDevpiClientTokenMethods(unittest.TestCase):
@@ -123,7 +123,10 @@ class TestDevpiClientTokenMethods(unittest.TestCase):
     def test_inspect_token_success(self):
         """Tests inspect() correctly parses a valid token string."""
         # This is a realistic-looking but fake macaroon for structure
-        token_str = "devpi-MDAxY2xvY2F0aW9uIGRldnBpCjAwMTBjaWQgdXNlcj1yb290CjAwMTZjaWQgdG9rZW5faWQ9YWJjMTIzCjAwMmZzaWduYXR1cmUgAe8-p0_gFA"
+        token_str = (
+            "devpi-MDAxY2xvY2F0aW9uIGRldnBpCjAwMTBjaWQgdXNlcj1yb290CjAwMTZjaWQgdG9rZW5f"
+            "aWQ9YWJjMTIzCjAwMmZzaWduYXR1cmUgAe8-p0_gFA"
+        )
 
         # Mocking the pymacaroons library directly
         with patch('pymacaroons.Macaroon') as mock_macaroon:

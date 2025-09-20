@@ -2,20 +2,21 @@
 Unit tests for base API functionality.
 """
 
-import pytest
 from unittest.mock import Mock
-from requests.exceptions import ConnectionError, Timeout, HTTPError, RequestException
+
+import pytest
+from requests.exceptions import ConnectionError, HTTPError, RequestException, Timeout
 
 from devpi_api_client.api.base import DevApiBase, validate_non_empty_string
 from devpi_api_client.exceptions import (
-    ValidationError,
     AuthenticationError,
-    PermissionError,
-    NotFoundError,
     ConflictError,
-    ServerError,
     NetworkError,
+    NotFoundError,
+    PermissionError,
     ResponseParsingError,
+    ServerError,
+    ValidationError,
 )
 
 

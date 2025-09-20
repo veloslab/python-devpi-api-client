@@ -3,16 +3,17 @@ Unit tests for custom exceptions.
 """
 
 import pytest
+
 from devpi_api_client.exceptions import (
-    DevpiApiError,
     AuthenticationError,
-    ValidationError,
+    ConflictError,
+    DevpiApiError,
+    NetworkError,
     NotFoundError,
     PermissionError,
-    ConflictError,
-    ServerError,
-    NetworkError,
     ResponseParsingError,
+    ServerError,
+    ValidationError,
 )
 
 
